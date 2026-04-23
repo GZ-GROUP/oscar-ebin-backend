@@ -1,0 +1,28 @@
+# Dependencias de Composer
+/vendor/
+
+# Archivos de entorno y configuraciones sensibles
+.env
+.env.local
+.env.*.local
+.env.secret
+config.php
+
+# Logs y Caché
+/logs/*
+/cache/*
+/temp/*
+!.gitkeep
+
+# IDE y herramientas
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs de PHP y errores
+php_error.log
+*.log
+
+# Carga automática de Composer
+composer.phar
