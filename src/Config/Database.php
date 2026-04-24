@@ -1,6 +1,5 @@
 <?php
 namespace App\Config;
-
 use PDO;
 
 class Database {
@@ -9,13 +8,14 @@ class Database {
     private $user;
     private $pass;
     private $port;
+    private ?PDO $conn = null; // ✅ Agrega esta línea
 
     public function __construct() {
-        $this->host = $_ENV['DB_HOST'] ;
-        $this->db = $_ENV['DB_NAME'];
-        $this->user = $_ENV['DB_USER'] ;
-        $this->pass = $_ENV['DB_PASS'] ;
-        $this->port = $_ENV['DB_PORT'] ;
+        $this->host = $_ENV['DB_HOST'];
+        $this->db   = $_ENV['DB_NAME'];
+        $this->user = $_ENV['DB_USER'];
+        $this->pass = $_ENV['DB_PASS'];
+        $this->port = $_ENV['DB_PORT'];
     }
 
     public function connect() {
@@ -24,7 +24,6 @@ class Database {
             $this->user,
             $this->pass
         );
-
         return $this->conn;
     }
 }
