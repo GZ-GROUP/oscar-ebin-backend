@@ -4,6 +4,8 @@ use Slim\App;
 use App\Controllers\AuthController;
 
 return function (App $app) {
-    $app->post('/signup', AuthController::class . ':signup');
-    $app->post('/login', AuthController::class . ':login');
+    $app->group('/api', function ($group) {
+        $group->post('/login', AuthController::class . ':login');
+        $group->post('/signup', AuthController::class . ':signup');
+    });
 };
