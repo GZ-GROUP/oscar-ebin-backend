@@ -14,7 +14,7 @@ services:
       - db
 
   db:
-    image: postgres:15
+    image: postgis/postgis:15-3.4
     environment:
       POSTGRES_DB: oscardb
       POSTGRES_USER: postgres
