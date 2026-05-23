@@ -34,6 +34,7 @@ CREATE TABLE companies (
 CREATE TABLE oscars (
     id SERIAL PRIMARY KEY,
     company_id INTEGER,
+    code VARCHAR(100) UNIQUE NOT NULL,
     location GEOGRAPHY(POINT,4326) NOT NULL,
     address VARCHAR(255),
     status VARCHAR(20) NOT NULL DEFAULT 'active'
@@ -307,3 +308,8 @@ VALUES
     ('Papel/Cartón', 'icon-paper', 0.0003),
     ('Lata', 'icon-can', 0.0010),
     ('Orgánico', 'icon-organic', 0.0002);
+
+INSERT INTO oscars (company_id, code, location, address)
+VALUES
+    (NULL, 'OSCAR-001', ST_GeographyFromText('SRID=4326;POINT(8.4563484 -82.4285337)'), 'FEDERAL MALL, CHIRIQUÍ, PANAMÁ'),
+    (NULL, 'OSCAR-002', ST_GeographyFromText('SRID=4326;POINT(8.4322029 -82.4637272)'), 'CHIRIQUI MALL, CHIRIQUÍ, PANAMÁ');
