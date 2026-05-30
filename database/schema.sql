@@ -305,12 +305,12 @@ ON DELETE RESTRICT;
 
 INSERT INTO trash_type (name, icon, value)
 VALUES
-    ('Plástico', 'icon-plastic', 0.0005),
-    ('Papel/Cartón', 'icon-paper', 0.0003),
-    ('Lata', 'icon-can', 0.0010),
-    ('Orgánico', 'icon-organic', 0.0002);
+    ('Plástico', 'icon-plastic', 5),
+    ('Papel/Cartón', 'icon-paper', 3),
+    ('Lata', 'icon-can', 10),
+    ('Orgánico', 'icon-organic', 2);
 
-INSERT INTO oscars (company_id, code, location, address)
+INSERT INTO oscars (company_id,name, code, location, address)
 VALUES
-    (NULL, 'OSCAR-001', ST_GeographyFromText('SRID=4326;POINT(-82.4285337 8.4563484)'), 'FEDERAL MALL, CHIRIQUÍ, PANAMÁ'),
-    (NULL, 'OSCAR-002', ST_GeographyFromText('SRID=4326;POINT(-82.4637272 8.4322029)'), 'CHIRIQUI MALL, CHIRIQUÍ, PANAMÁ');
+    (NULL, "Oscar Federal" ,'OSCAR-001', ST_GeographyFromText('SRID=4326;POINT(-82.4285337 8.4563484)'), 'FEDERAL MALL, CHIRIQUÍ, PANAMÁ'),
+    (NULL, "Oscar Mall Chiriqui" ,'OSCAR-002', ST_GeographyFromText('SRID=4326;POINT(-82.4637272 8.4322029)'), 'CHIRIQUI MALL, CHIRIQUÍ, PANAMÁ');
