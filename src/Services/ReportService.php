@@ -16,7 +16,7 @@ class ReportService {
         $this->userService = new UserService();
     }
 
-    public function getRanking(int $limit = 10): array {
+    public function getRanking(int $limit = 10, int $offset = 0): array {
         $stmt = $this->db->prepare(
             "SELECT u.id, u.username, u.name, u.profile_image_url, COALESCE(SUM(t.amount), 0) AS points
              FROM users u
@@ -24,20 +24,22 @@ class ReportService {
              WHERE t.type = 'credit' AND t.created_at >= NOW() - INTERVAL '1 month'
              GROUP BY u.id, u.username, u.name, u.profile_image_url
              ORDER BY points DESC
-             LIMIT :limit"
+             LIMIT :limit OFFSET :offset"
         );
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
         $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getUserHistory(int $userId, ?string $category = null): array {
-        $sql = "SELECT t.*, rc.code AS reward_code, r.name AS reward_name, s.oscar_id AS session_oscar_id
+    public function getUserHistory(int $userId, ?string $category = null, ?string $transactionType = null, int $limit = 10, int $offset = 0): array {
+        $sql = "SELECT t.*, rc.code AS reward_code, r.name AS reward_name, s.oscar_id AS session_oscar_id, o.name AS oscar_name
                 FROM transactions t
                 LEFT JOIN reward_claim rc ON rc.id = t.reward_claim_id
                 LEFT JOIN reward r ON r.id = rc.reward_id
                 LEFT JOIN sessions s ON s.id = t.session_id
+                LEFT JOIN oscars o ON o.id = s.oscar_id
                 WHERE t.user_id = :user_id";
 
         if ($category === 'session') {
@@ -46,10 +48,20 @@ class ReportService {
             $sql .= " AND t.reward_claim_id IS NOT NULL";
         }
 
-        $sql .= " ORDER BY t.created_at DESC";
+        if ($transactionType !== null) {
+            $sql .= " AND t.type = :transaction_type";
+        }
+
+        $sql .= " ORDER BY t.created_at DESC LIMIT :limit OFFSET :offset";
 
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([':user_id' => $userId]);
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        if ($transactionType !== null) {
+            $stmt->bindValue(':transaction_type', $transactionType, PDO::PARAM_STR);
+        }
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }

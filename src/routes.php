@@ -15,11 +15,11 @@ return function (App $app) {
 
         $group->post('/login', AuthController::class . ':login');
         $group->post('/signup', AuthController::class . ':signup');
+        $group->get('/ranking', RankingController::class . ':ranking');
+        $group->get('/oscar/location', OscarController::class . ':locations');
         $group->post('/oscar/item', OscarController::class . ':createItem');
 
         $group->group('', function ($group) {
-            $group->get('/ranking', RankingController::class . ':ranking');
-            $group->get('/oscar/location', OscarController::class . ':locations');
             $group->post('/oscar/claim', OscarController::class . ':claim');
             $group->post('/redeem', RewardController::class . ':redeem');
             $group->get('/history', HistoryController::class . ':history');

@@ -36,6 +36,7 @@ CREATE TABLE oscars (
     company_id INTEGER,
     code VARCHAR(100) UNIQUE NOT NULL,
     location GEOGRAPHY(POINT,4326) NOT NULL,
+    name VARCHAR(150) NOT NULL,
     address VARCHAR(255),
     status VARCHAR(20) NOT NULL DEFAULT 'active'
         CHECK (status IN ('active', 'maintenance', 'inactive')),
@@ -311,5 +312,5 @@ VALUES
 
 INSERT INTO oscars (company_id, code, location, address)
 VALUES
-    (NULL, 'OSCAR-001', ST_GeographyFromText('SRID=4326;POINT(8.4563484 -82.4285337)'), 'FEDERAL MALL, CHIRIQUÍ, PANAMÁ'),
-    (NULL, 'OSCAR-002', ST_GeographyFromText('SRID=4326;POINT(8.4322029 -82.4637272)'), 'CHIRIQUI MALL, CHIRIQUÍ, PANAMÁ');
+    (NULL, 'OSCAR-001', ST_GeographyFromText('SRID=4326;POINT(-82.4285337 8.4563484)'), 'FEDERAL MALL, CHIRIQUÍ, PANAMÁ'),
+    (NULL, 'OSCAR-002', ST_GeographyFromText('SRID=4326;POINT(-82.4637272 8.4322029)'), 'CHIRIQUI MALL, CHIRIQUÍ, PANAMÁ');

@@ -19,9 +19,8 @@ class OscarService {
 
     public function getLocations(): array {
         $stmt = $this->db->query(
-            "SELECT o.id, o.code, COALESCE(c.name, o.address) AS name, ST_Y(o.location::geometry) AS lat, ST_X(o.location::geometry) AS lng, o.address, o.status
+            "SELECT o.id, o.code, o.name, ST_Y(o.location::geometry) AS lat, ST_X(o.location::geometry) AS lng, o.address, o.status
              FROM oscars o
-             LEFT JOIN companies c ON c.id = o.company_id
              WHERE o.status = 'active'"
         );
 
