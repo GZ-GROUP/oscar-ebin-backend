@@ -189,4 +189,155 @@ class OscarService {
 
         return $totals ?: ['item_count' => 0, 'total_value' => 0.0];
     }
+
+    // --- Nuevas funciones para gestión de oscars y estadísticas ---
+
+    private function getCompanyIdByUserId(int $userId): ?int {
+        $stmt = $this->db->prepare("SELECT id FROM companies WHERE user_id = :user_id LIMIT 1");
+        $stmt->execute([':user_id' => $userId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ? (int)$row['id'] : null;
+    }
+
+    public function createOscar(int $userId, array $data): array {
+        $companyId = $this->getCompanyIdByUserId($userId);
+        if (!$companyId) {
+            throw new \Exception('Usuario no tiene empresa asociada');
+        }
+
+        $code = $data['code'] ?? null;
+        $name = $data['name'] ?? null;
+        $address = $data['address'] ?? null;
+        $status = $data['status'] ?? 'active';
+        $lat = isset($data['lat']) ? (float)$data['lat'] : null;
+        $lng = isset($data['lng']) ? (float)$data['lng'] : null;
+
+        if (!$code || !$name || !$lat || !$lng) {
+            throw new \Exception('code, name, lat y lng son requeridos');
+        }
+
+        $stmt = $this->db->prepare(
+            "INSERT INTO oscars (company_id, code, location, name, address, status)
+             VALUES (:company_id, :code, ST_GeographyFromText(:point), :name, :address, :status) RETURNING *"
+        );
+
+        $point = sprintf('SRID=4326;POINT(%F %F)', $lng, $lat);
+
+        $stmt->execute([
+            ':company_id' => $companyId,
+            ':code' => $code,
+            ':point' => $point,
+            ':name' => $name,
+            ':address' => $address,
+            ':status' => $status,
+        ]);
+
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function getOscarById(int $id): ?array {
+        $stmt = $this->db->prepare("SELECT * FROM oscars WHERE id = :id LIMIT 1");
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    public function getOscarStatsById(int $oscarId): array {
+        $totalsStmt = $this->db->prepare(
+            "SELECT COUNT(si.id) AS total_items, COALESCE(SUM(tt.value),0) AS total_value
+             FROM session_item si
+             JOIN trash_type tt ON tt.id = si.trash_type_id
+             JOIN sessions s ON s.id = si.session_id
+             WHERE s.oscar_id = :oscar_id"
+        );
+        $totalsStmt->execute([':oscar_id' => $oscarId]);
+        $totals = $totalsStmt->fetch(PDO::FETCH_ASSOC) ?: ['total_items' => 0, 'total_value' => 0];
+
+        $itemsStmt = $this->db->prepare(
+            "SELECT si.id, si.scanned_at, tt.name AS trash_type, tt.value
+             FROM session_item si
+             JOIN trash_type tt ON tt.id = si.trash_type_id
+             JOIN sessions s ON s.id = si.session_id
+             WHERE s.oscar_id = :oscar_id
+             ORDER BY si.scanned_at DESC
+             LIMIT 5"
+        );
+        $itemsStmt->execute([':oscar_id' => $oscarId]);
+        $lastItems = $itemsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $claimsStmt = $this->db->prepare(
+            "SELECT s.id, s.user_id, s.total_value, s.claimed_at
+             FROM sessions s
+             WHERE s.oscar_id = :oscar_id AND s.status = 'completed'
+             ORDER BY s.claimed_at DESC
+             LIMIT 5"
+        );
+        $claimsStmt->execute([':oscar_id' => $oscarId]);
+        $lastClaims = $claimsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return [
+            'totals' => $totals,
+            'last_items' => $lastItems,
+            'last_claims' => $lastClaims
+        ];
+    }
+
+    public function getItemById(int $itemId): ?array {
+        $stmt = $this->db->prepare(
+            "SELECT si.id, si.scanned_at, si.session_id, tt.id AS trash_type_id, tt.name AS trash_type, tt.value,
+                    s.oscar_id, s.started_at
+             FROM session_item si
+             JOIN trash_type tt ON tt.id = si.trash_type_id
+             JOIN sessions s ON s.id = si.session_id
+             WHERE si.id = :id LIMIT 1"
+        );
+        $stmt->execute([':id' => $itemId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    public function deleteOscarById(int $userId, int $oscarId): bool {
+        $companyId = $this->getCompanyIdByUserId($userId);
+        if (!$companyId) throw new \Exception('Usuario no tiene empresa asociada');
+
+        $oscar = $this->getOscarById($oscarId);
+        if (!$oscar) throw new \Exception('Oscar no encontrado');
+        if ((int)$oscar['company_id'] !== $companyId) throw new \Exception('No autorizado para borrar este Oscar');
+
+        $stmt = $this->db->prepare("DELETE FROM oscars WHERE id = :id");
+        return $stmt->execute([':id' => $oscarId]);
+    }
+
+    public function updateOscarById(int $userId, int $oscarId, array $data): array {
+        $companyId = $this->getCompanyIdByUserId($userId);
+        if (!$companyId) throw new \Exception('Usuario no tiene empresa asociada');
+
+        $oscar = $this->getOscarById($oscarId);
+        if (!$oscar) throw new \Exception('Oscar no encontrado');
+        if ((int)$oscar['company_id'] !== $companyId) throw new \Exception('No autorizado para actualizar este Oscar');
+
+        $fields = [];
+        $params = [':id' => $oscarId];
+
+        if (isset($data['name'])) { $fields[] = 'name = :name'; $params[':name'] = $data['name']; }
+        if (isset($data['address'])) { $fields[] = 'address = :address'; $params[':address'] = $data['address']; }
+        if (isset($data['status'])) { $fields[] = 'status = :status'; $params[':status'] = $data['status']; }
+        if (isset($data['code'])) { $fields[] = 'code = :code'; $params[':code'] = $data['code']; }
+        if (isset($data['lat']) && isset($data['lng'])) {
+            $point = sprintf('SRID=4326;POINT(%F %F)', (float)$data['lng'], (float)$data['lat']);
+            $fields[] = 'location = ST_GeographyFromText(:point)';
+            $params[':point'] = $point;
+        }
+
+        if (empty($fields)) {
+            throw new \Exception('No hay campos para actualizar');
+        }
+
+        $sql = 'UPDATE oscars SET ' . implode(', ', $fields) . ' , updated_at = NOW() WHERE id = :id RETURNING *';
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: [];
+    }
 }
